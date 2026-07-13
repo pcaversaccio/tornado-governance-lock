@@ -49,8 +49,12 @@ contract FinalGovernanceLockProposal {
         }
         assert(adminSet == DEAD_ADMIN);
 
-        (bool proposeSucceeded,) =
-            GOVERNANCE_PROXY.call(abi.encodeWithSignature("propose(address,string)", address(this), "Canary Proposal"));
-        assert(!proposeSucceeded);
+        (bool staticcallSucceeded, bytes memory returnData) =
+            GOVERNANCE_PROXY.staticcall(abi.encodeWithSignature("QUORUM_VOTES()"));
+        assert(!staticcallSucceeded);
+        assert(
+            keccak256(abi.encode(bytes4(returnData)))
+                == keccak256(abi.encode(SealedGovernance.TornadoCashGovernanceIsDead.selector))
+        );
     }
 }
