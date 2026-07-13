@@ -1,0 +1,56 @@
+name: 🕵️‍♂️ Test smart contracts
+
+on: [push, pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@b00af27efadbc7b4ca8b82abbd903b17cc874d2a # v1.9.0
+        with:
+          version: nightly
+
+      - name: Show the Foundry CI config
+        run: forge config
+        env:
+          FOUNDRY_PROFILE: ci
+          FOUNDRY_DISABLE_NIGHTLY_WARNING: "1"
+
+      - name: Foundry tests
+        run: forge test
+        env:
+          FOUNDRY_PROFILE: ci
+          FOUNDRY_DISABLE_NIGHTLY_WARNING: "1"
+
+      - name: Show the Foundry default config
+        run: forge config
+        env:
+          FOUNDRY_PROFILE: default
+          FOUNDRY_DISABLE_NIGHTLY_WARNING: "1"
+
+      - name: Run snapshot
+        run: NO_COLOR=1 forge snapshot >> $GITHUB_STEP_SUMMARY
+        env:
+          FOUNDRY_PROFILE: default
+          FOUNDRY_DISABLE_NIGHTLY_WARNING: "1"
