@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {FinalGovernanceLockProposal} from "../src/FinalGovernanceLockProposal.sol";
 
 contract FinalGovernanceLockProposalTest is Test {
-
     FinalGovernanceLockProposal private finalGovernanceLockProposal;
 
     function setUp() public {
