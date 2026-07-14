@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: WTFPL
 pragma solidity 0.8.36;
 
+// forge-lint: disable-next-line(multi-contract-file)
 interface ITornadoVault {
     function withdrawTorn(address recipient, uint256 amount) external;
 }
@@ -9,12 +10,14 @@ interface ITornadoVault {
  * @notice Terminal Tornado Cash governance implementation: only `unlockAll()` and `lockedBalance()`
  * survives, everything else reverts.
  */
+// forge-lint: disable-next-line(multi-contract-file)
 contract SealedGovernance {
     address private constant _TORNADO_VAULT = 0x2F50508a8a3D323B91336FA3eA6ae50E55f32185;
     error InsufficientLockedBalance();
     error TornadoCashGovernanceIsDead();
 
     // The `lockedBalance` mapping is stored at slot 59 (see https://etherscan.io/address/0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce).
+    // forge-lint: disable-next-line(unused-state-variables)
     uint256[59] private _gap;
     mapping(address account => uint256 balance) public lockedBalance;
 
@@ -40,6 +43,7 @@ contract SealedGovernance {
     }
 }
 
+// forge-lint: disable-next-line(multi-contract-file)
 interface ITransparentUpgradeableProxy {
     function upgradeTo(address newImplementation) external;
     function changeAdmin(address newAdmin) external;
@@ -48,6 +52,7 @@ interface ITransparentUpgradeableProxy {
 /**
  * @notice One-shot governance proposal that permanently disables Tornado Cash governance.
  */
+// forge-lint: disable-next-line(multi-contract-file)
 contract FinalGovernanceLockProposal {
     address public constant GOVERNANCE_PROXY = 0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce;
     address public constant DEAD_ADMIN = 0x000000000000000000000000000000000000dEaD;
@@ -74,6 +79,7 @@ contract FinalGovernanceLockProposal {
 
         // Post-conditions: verify the implementation and admin slots were correctly updated.
         address implSet;
+        // forge-lint: disable-next-line(inline-assembly)
         assembly {
             implSet := sload(_IMPLEMENTATION_SLOT)
         }
@@ -81,6 +87,7 @@ contract FinalGovernanceLockProposal {
         assert(implSet == SEALED_IMPLEMENTATION);
 
         address adminSet;
+        // forge-lint: disable-next-line(inline-assembly)
         assembly {
             adminSet := sload(_ADMIN_SLOT)
         }
@@ -89,8 +96,11 @@ contract FinalGovernanceLockProposal {
 
         // Canary: the proxy must now reject any (static)call (except `unlockAll()` and `lockedBalance()`)
         // with `SealedGovernance`'s error.
-        (bool staticcallSucceeded, bytes memory returnData) =
-            GOVERNANCE_PROXY.staticcall(abi.encodeWithSignature("QUORUM_VOTES()"));
+        (
+            bool staticcallSucceeded,
+            bytes memory returnData
+            // forge-lint: disable-next-line(low-level-calls)
+        ) = GOVERNANCE_PROXY.staticcall(abi.encodeWithSignature("QUORUM_VOTES()"));
         assert(!staticcallSucceeded);
         // forge-lint: disable-next-line(unsafe-typecast)
         assert(bytes4(returnData) == SealedGovernance.TornadoCashGovernanceIsDead.selector);

@@ -4,14 +4,17 @@ pragma solidity 0.8.36;
 import {Test} from "forge-std/Test.sol";
 import {SealedGovernance, FinalGovernanceLockProposal} from "../src/FinalGovernanceLockProposal.sol";
 
+// forge-lint: disable-next-line(multi-contract-file)
 interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
+// forge-lint: disable-next-line(multi-contract-file)
 interface ITORN {
     function nonces(address owner) external view returns (uint256);
 }
 
+// forge-lint: disable-next-line(multi-contract-file)
 interface IGovernance {
     function EXECUTION_DELAY() external view returns (uint256);
     function QUORUM_VOTES() external view returns (uint256);
@@ -26,6 +29,7 @@ interface IGovernance {
     function lockedBalance(address account) external view returns (uint256);
 }
 
+// forge-lint: disable-next-line(multi-contract-file)
 contract FinalGovernanceLockProposalTest is Test {
     bytes32 private constant _PERMIT_TYPE_HASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -95,6 +99,7 @@ contract FinalGovernanceLockProposalTest is Test {
         );
         _gov.unlock(uint256(1));
         deal(proposer, 1 wei);
+        // forge-lint: disable-next-line(low-level-calls)
         (bool ok, bytes memory returnData) = _GOVERNANCE_PROXY.call{value: 1 wei}("");
         assertTrue(!ok);
         assertEq(returnData, abi.encodeWithSelector(SealedGovernance.TornadoCashGovernanceIsDead.selector));
