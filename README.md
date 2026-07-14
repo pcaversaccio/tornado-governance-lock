@@ -4,6 +4,9 @@
 [![👮♂️ Sanity checks](https://github.com/pcaversaccio/tornado-governance-lock/actions/workflows/checks.yml/badge.svg)](https://github.com/pcaversaccio/tornado-governance-lock/actions/workflows/checks.yml)
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-blue.svg)](https://www.wtfpl.net/about/)
 
+> [!NOTE]
+> Please drop your feedback on the terminal Tornado Cash governance proposal [here](https://github.com/pcaversaccio/tornado-governance-lock/discussions/1).
+
 Permanently disables the Tornado Cash governance [`0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce`](https://etherscan.io/address/0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce) so that _no_ future governance proposal - malicious or otherwise - can ever be submitted, voted on, or executed again, while adding `unlockAll()` so previously locked TORN, including TORN locked specifically to vote this in, is never trapped.
 
 ## Mechanism
