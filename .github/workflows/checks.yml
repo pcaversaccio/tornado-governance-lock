@@ -9,7 +9,7 @@ concurrency:
 permissions: {}
 
 jobs:
-  prettify:
+  prettify-n-lint:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     permissions:
@@ -42,6 +42,11 @@ jobs:
 
       - name: Prettify Solidity files
         run: forge fmt --check
+        env:
+          FOUNDRY_DISABLE_NIGHTLY_WARNING: "1"
+
+      - name: Lint Solidity files
+        run: forge lint
         env:
           FOUNDRY_DISABLE_NIGHTLY_WARNING: "1"
 

@@ -5,15 +5,22 @@ interface ITornadoVault {
     function withdrawTorn(address recipient, uint256 amount) external;
 }
 
+/**
+ * @notice Terminal Tornado Cash governance implementation: only `unlockAll()` and `lockedBalance()`
+ * survives, everything else reverts.
+ */
 contract SealedGovernance {
     address private constant _TORNADO_VAULT = 0x2F50508a8a3D323B91336FA3eA6ae50E55f32185;
     error InsufficientLockedBalance();
     error TornadoCashGovernanceIsDead();
 
+    // The `lockedBalance` mapping is stored at slot 59 (see https://etherscan.io/address/0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce).
     uint256[59] private _gap;
-
     mapping(address account => uint256 balance) public lockedBalance;
 
+    /**
+     * @notice Withdraw the caller's entire locked TORN balance via the vault.
+     */
     function unlockAll() external {
         uint256 balance = lockedBalance[msg.sender];
         if (balance == 0) revert InsufficientLockedBalance();
@@ -21,6 +28,9 @@ contract SealedGovernance {
         ITornadoVault(_TORNADO_VAULT).withdrawTorn(msg.sender, balance);
     }
 
+    /**
+     * @dev Catches `propose`, `lock`, `castVote`, `execute`, and everything else.
+     */
     fallback() external payable {
         revert TornadoCashGovernanceIsDead();
     }
@@ -35,6 +45,9 @@ interface ITransparentUpgradeableProxy {
     function changeAdmin(address newAdmin) external;
 }
 
+/**
+ * @notice One-shot governance proposal that permanently disables Tornado Cash governance.
+ */
 contract FinalGovernanceLockProposal {
     address public constant GOVERNANCE_PROXY = 0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce;
     address public constant DEAD_ADMIN = 0x000000000000000000000000000000000000dEaD;
@@ -46,32 +59,40 @@ contract FinalGovernanceLockProposal {
 
     constructor() {
         SEALED_IMPLEMENTATION = address(new SealedGovernance{salt: keccak256("TORNADO CASH GOVERNANCE IS DEAD!")}());
+        // Invariant check: the implementation must be the `SealedGovernance` runtime code.
         assert(SEALED_IMPLEMENTATION.codehash == keccak256(type(SealedGovernance).runtimeCode));
     }
 
+    /**
+     * @notice Delegatecalled by `Governance.execute()`: upgrades the proxy to `SealedGovernance`,
+     * burns the proxy admin, then verifies both took effect before returning.
+     */
     function executeProposal() external {
         ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(GOVERNANCE_PROXY);
         proxy.upgradeTo(SEALED_IMPLEMENTATION);
         proxy.changeAdmin(DEAD_ADMIN);
 
+        // Post-conditions: verify the implementation and admin slots were correctly updated.
         address implSet;
         assembly {
             implSet := sload(_IMPLEMENTATION_SLOT)
         }
+        // forge-lint: disable-next-line(uninitialized-local)
         assert(implSet == SEALED_IMPLEMENTATION);
 
         address adminSet;
         assembly {
             adminSet := sload(_ADMIN_SLOT)
         }
+        // forge-lint: disable-next-line(uninitialized-local)
         assert(adminSet == DEAD_ADMIN);
 
+        // Canary: the proxy must now reject any (static)call (except `unlockAll()` and `lockedBalance()`)
+        // with `SealedGovernance`'s error.
         (bool staticcallSucceeded, bytes memory returnData) =
             GOVERNANCE_PROXY.staticcall(abi.encodeWithSignature("QUORUM_VOTES()"));
         assert(!staticcallSucceeded);
-        assert(
-            keccak256(abi.encode(bytes4(returnData)))
-                == keccak256(abi.encode(SealedGovernance.TornadoCashGovernanceIsDead.selector))
-        );
+        // forge-lint: disable-next-line(unsafe-typecast)
+        assert(bytes4(returnData) == SealedGovernance.TornadoCashGovernanceIsDead.selector);
     }
 }

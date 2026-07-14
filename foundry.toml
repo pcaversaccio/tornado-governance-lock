@@ -1,23 +1,22 @@
 # Defaults for all profiles.
 [profile.default]
-src = "src"                                      # Set the source directory.
-test = "test"                                    # Set the test directory.
-out = "out"                                      # Set the output directory for the artifacts.
-libs = ["lib"]                                   # Configure an array of library directories.
-cache = true                                     # Enable caching.
-cache_path = "cache"                             # Set the path to the cache.
-force = false                                    # Do not ignore the cache.
-solc_version = "0.8.36"                          # Set the Solidity compiler version.
-evm_version = "osaka"                            # Set the EVM target version.
-optimizer = true                                 # Enable the Solidity compiler optimiser.
-optimizer_runs = 999_999                         # Configure the number of optimiser runs.
-via_ir = false                                   # Prevent the compilation pipeline from running through the Yul intermediate representation.
-verbosity = 3                                    # Set the verbosity level for the tests.
-isolate = true                                   # Enable call isolation for the tests.
-lint = { lint_on_build = false }                 # Do not run automatic linting during builds.
-fuzz = { runs = 256, max_test_rejects = 65_536 } # Configure the number of fuzz runs and maximum number of combined inputs that may be rejected for the tests.
+src = "src"                      # Set the source directory.
+test = "test"                    # Set the test directory.
+out = "out"                      # Set the output directory for the artifacts.
+libs = ["lib"]                   # Configure an array of library directories.
+cache = true                     # Enable caching.
+cache_path = "cache"             # Set the path to the cache.
+force = false                    # Do not ignore the cache.
+solc_version = "0.8.36"          # Set the Solidity compiler version.
+evm_version = "osaka"            # Set the EVM target version.
+optimizer = true                 # Enable the Solidity compiler optimiser.
+optimizer_runs = 999_999         # Configure the number of optimiser runs.
+via_ir = false                   # Prevent the compilation pipeline from running through the Yul intermediate representation.
+verbosity = 3                    # Set the verbosity level for the tests.
+isolate = true                   # Enable call isolation for the tests.
+lint = { lint_on_build = false } # Do not run automatic linting during builds.
 
 # Default overrides for the CI runs.
 [profile.ci]
-force = true                                     # Perform always a clean build.
-verbosity = 4                                    # Increase the verbosity level for the tests.
+force = true                     # Perform always a clean build.
+verbosity = 4                    # Increase the verbosity level for the tests.
