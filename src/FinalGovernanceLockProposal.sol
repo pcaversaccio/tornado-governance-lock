@@ -1,8 +1,25 @@
 // SPDX-License-Identifier: WTFPL
 pragma solidity 0.8.36;
 
+interface ITornadoVault {
+    function withdrawTorn(address recipient, uint256 amount) external;
+}
+
 contract SealedGovernance {
+    address private constant _TORNADO_VAULT = 0x2F50508a8a3D323B91336FA3eA6ae50E55f32185;
+    error InsufficientLockedBalance();
     error TornadoCashGovernanceIsDead();
+
+    uint256[59] private _gap;
+
+    mapping(address account => uint256 balance) public lockedBalance;
+
+    function unlockAll() external {
+        uint256 balance = lockedBalance[msg.sender];
+        if (balance == 0) revert InsufficientLockedBalance();
+        lockedBalance[msg.sender] = 0;
+        ITornadoVault(_TORNADO_VAULT).withdrawTorn(msg.sender, balance);
+    }
 
     fallback() external payable {
         revert TornadoCashGovernanceIsDead();

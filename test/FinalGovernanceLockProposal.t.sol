@@ -4,6 +4,14 @@ pragma solidity 0.8.36;
 import {Test} from "forge-std/Test.sol";
 import {SealedGovernance, FinalGovernanceLockProposal} from "../src/FinalGovernanceLockProposal.sol";
 
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
+}
+
+interface ITORN {
+    function nonces(address owner) external view returns (uint256);
+}
+
 interface IGovernance {
     function EXECUTION_DELAY() external view returns (uint256);
     function QUORUM_VOTES() external view returns (uint256);
@@ -14,10 +22,8 @@ interface IGovernance {
     function propose(address target, string memory description) external returns (uint256);
     function castVote(uint256 proposalId, bool support) external;
     function execute(uint256 proposalId) external;
-}
-
-interface ITORN {
-    function nonces(address owner) external view returns (uint256);
+    function unlockAll() external;
+    function lockedBalance(address account) external view returns (uint256);
 }
 
 contract FinalGovernanceLockProposalTest is Test {
@@ -30,30 +36,29 @@ contract FinalGovernanceLockProposalTest is Test {
     bytes32 private constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     bytes32 private constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
-    FinalGovernanceLockProposal private finalGovernanceLockProposal;
-    address private finalGovernanceLockProposalAddr;
-    address private sealedGovernanceAddr;
+    IGovernance private _gov = IGovernance(_GOVERNANCE_PROXY);
+    address private _finalGovernanceLockProposalAddr;
+    address private _sealedGovernanceAddr;
 
     function setUp() external {
         vm.createSelectFork("https://ethereum-rpc.publicnode.com");
-        finalGovernanceLockProposal = new FinalGovernanceLockProposal();
-        finalGovernanceLockProposalAddr = address(finalGovernanceLockProposal);
-        sealedGovernanceAddr = vm.computeCreate2Address(
-            _SALT, keccak256(type(SealedGovernance).creationCode), finalGovernanceLockProposalAddr
+        _finalGovernanceLockProposalAddr = address(new FinalGovernanceLockProposal());
+        _sealedGovernanceAddr = vm.computeCreate2Address(
+            _SALT, keccak256(type(SealedGovernance).creationCode), _finalGovernanceLockProposalAddr
         );
     }
 
     function testInitialSetup() external view {
-        assertEq(sealedGovernanceAddr.codehash, keccak256(type(SealedGovernance).runtimeCode));
+        assertEq(_sealedGovernanceAddr.codehash, keccak256(type(SealedGovernance).runtimeCode));
     }
 
     function testFinalGovernanceLockProposal() external {
         (address proposer, uint256 key) = makeAddrAndKey("proposer");
-        deal(_TORN, proposer, IGovernance(_GOVERNANCE_PROXY).QUORUM_VOTES());
-        uint256 amount = IGovernance(_GOVERNANCE_PROXY).QUORUM_VOTES();
+        deal(_TORN, proposer, _gov.QUORUM_VOTES());
+        uint256 amount = _gov.QUORUM_VOTES();
         uint256 nonce = ITORN(_TORN).nonces(proposer);
         uint256 deadline = block.timestamp + 100_000;
-        bytes32 domainSeparator = vm.load(_TORN, bytes32(keccak256(abi.encode(uint256(1), 7))));
+        bytes32 domainSeparator = vm.load(_TORN, bytes32(keccak256(abi.encode(uint256(1), uint256(7)))));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             key,
             keccak256(
@@ -66,32 +71,30 @@ contract FinalGovernanceLockProposalTest is Test {
         );
 
         vm.startPrank(proposer);
-        IGovernance(_GOVERNANCE_PROXY).lock(proposer, amount, deadline, v, r, s);
-        uint256 proposalId =
-            IGovernance(_GOVERNANCE_PROXY).propose(finalGovernanceLockProposalAddr, "TORNADO CASH GOVERNANCE IS DEAD!");
-        vm.warp(block.timestamp + IGovernance(_GOVERNANCE_PROXY).VOTING_DELAY() + 1);
-        IGovernance(_GOVERNANCE_PROXY).castVote(proposalId, true);
-        vm.warp(
-            block.timestamp + IGovernance(_GOVERNANCE_PROXY).VOTING_PERIOD()
-                + IGovernance(_GOVERNANCE_PROXY).EXECUTION_DELAY() + 1
-        );
-        IGovernance(_GOVERNANCE_PROXY).execute(proposalId);
+        _gov.lock(proposer, amount, deadline, v, r, s);
+        uint256 proposalId = _gov.propose(_finalGovernanceLockProposalAddr, "TORNADO CASH GOVERNANCE IS DEAD!");
+        vm.warp(block.timestamp + _gov.VOTING_DELAY() + uint256(1));
+        _gov.castVote(proposalId, true);
+        vm.warp(block.timestamp + _gov.VOTING_PERIOD() + _gov.EXECUTION_DELAY() + uint256(1));
+        _gov.execute(proposalId);
         vm.stopPrank();
 
-        address implAfter = address(uint160(uint256(vm.load(_GOVERNANCE_PROXY, _IMPLEMENTATION_SLOT))));
-        assertEq(implAfter, sealedGovernanceAddr);
+        assertEq(address(uint160(uint256(vm.load(_GOVERNANCE_PROXY, _IMPLEMENTATION_SLOT)))), _sealedGovernanceAddr);
+        assertEq(address(uint160(uint256(vm.load(_GOVERNANCE_PROXY, _ADMIN_SLOT)))), _DEAD_ADMIN);
 
-        address adminAfter = address(uint160(uint256(vm.load(_GOVERNANCE_PROXY, _ADMIN_SLOT))));
-        assertEq(adminAfter, _DEAD_ADMIN);
-
-        bytes memory expectedErr = abi.encodeWithSelector(SealedGovernance.TornadoCashGovernanceIsDead.selector);
-        vm.expectRevert(expectedErr, _GOVERNANCE_PROXY);
+        vm.expectRevert(
+            abi.encodeWithSelector(SealedGovernance.TornadoCashGovernanceIsDead.selector), _GOVERNANCE_PROXY
+        );
         vm.startPrank(proposer);
-        IGovernance(_GOVERNANCE_PROXY).unlock(1);
+        _gov.unlock(uint256(1));
         deal(proposer, 1 wei);
         (bool ok, bytes memory returnData) = _GOVERNANCE_PROXY.call{value: 1 wei}("");
         assertTrue(!ok);
-        assertEq(returnData, expectedErr);
+        assertEq(returnData, abi.encodeWithSelector(SealedGovernance.TornadoCashGovernanceIsDead.selector));
+        assertEq(_gov.lockedBalance(proposer), amount);
+        _gov.unlockAll();
+        assertEq(IERC20(_TORN).balanceOf(proposer), amount);
+        assertEq(_gov.lockedBalance(proposer), uint256(0));
         vm.stopPrank();
     }
 }
