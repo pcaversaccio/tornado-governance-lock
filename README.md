@@ -12,7 +12,7 @@ The governance proxy is a `TransparentUpgradeableProxy` whose admin is set to it
 
 - `upgradeTo(SealedGovernance)` - replaces the live implementation. `propose()`, `lock()`, `castVote()`, `execute()`, etc. cease to exist; only `lockedBalance()` and `unlockAll()` and survives.
 - `changeAdmin(0x...dEaD)` - moves the proxy admin to an address with no known private key, closing the loopback itself so no future call can
-  ever reach `upgradeTo`/`changeAdmin` again.
+  ever reach `upgradeTo()`/`changeAdmin()` again.
 
 Both steps are checked on-chain, in the same transaction, before the proposal considers itself done:
 
