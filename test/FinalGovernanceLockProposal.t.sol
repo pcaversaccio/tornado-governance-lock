@@ -64,7 +64,7 @@ contract FinalGovernanceLockProposalTest is Test {
         deal(_TORN, proposer, _gov.QUORUM_VOTES());
         uint256 amount = _gov.QUORUM_VOTES();
         uint256 nonce = ITORN(_TORN).nonces(proposer);
-        uint256 deadline = block.timestamp + 100_000;
+        uint256 deadline = block.timestamp + uint256(100_000);
         bytes32 domainSeparator = vm.load(_TORN, bytes32(keccak256(abi.encode(uint256(1), uint256(7)))));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             key,

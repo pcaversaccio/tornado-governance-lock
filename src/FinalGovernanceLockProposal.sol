@@ -13,13 +13,14 @@ interface ITornadoVault {
 // forge-lint: disable-next-line(multi-contract-file)
 contract SealedGovernance {
     address private constant _TORNADO_VAULT = 0x2F50508a8a3D323B91336FA3eA6ae50E55f32185;
-    error InsufficientLockedBalance();
-    error TornadoCashGovernanceIsDead();
 
     // The `lockedBalance` mapping is stored at slot 59 (see https://etherscan.io/address/0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce).
     // forge-lint: disable-next-line(unused-state-variables)
     uint256[59] private _gap;
     mapping(address account => uint256 balance) public lockedBalance;
+
+    error InsufficientLockedBalance();
+    error TornadoCashGovernanceIsDead();
 
     /**
      * @notice Withdraw the caller's entire locked TORN balance via the vault.
