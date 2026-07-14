@@ -23,7 +23,10 @@ Both steps are checked on-chain, in the same transaction, before the proposal co
 - the EIP-1967 admin slot is re-read and asserted equal to the burn address,
 - a canary call to the now-sealed proxy is asserted to revert with `SealedGovernance.TornadoCashGovernanceIsDead`.
 
-Locked TORN itself lives in a separate vault contract ([`0x2F50508a8a3D323B91336FA3eA6ae50E55f32185`](https://etherscan.io/address/0x2F50508a8a3D323B91336FA3eA6ae50E55f32185)); `unlockAll()` calls `withdrawTorn(msg.sender, balance)` on it, matching how the live contract's own accounting is split between governance (bookkeeping) and the vault (custody). Any TORN held directly by the governance contract itself (i.e. DAO treasury funds not accounted for in the vault) is intentionally left _inaccessible_ and will remain permanently trapped once the governance is sealed.
+Locked TORN itself lives in a separate vault contract ([`0x2F50508a8a3D323B91336FA3eA6ae50E55f32185`](https://etherscan.io/address/0x2F50508a8a3D323B91336FA3eA6ae50E55f32185)); `unlockAll()` calls `withdrawTorn(msg.sender, balance)` on it, matching how the live contract's own accounting is split between governance (bookkeeping) and the vault (custody).
+
+> [!IMPORTANT]
+> Any TORN held directly by the governance contract itself (i.e. DAO treasury funds not accounted for in the vault) is intentionally left _inaccessible_ and will remain permanently trapped once the governance is sealed.
 
 ## This Is Irreversible
 
